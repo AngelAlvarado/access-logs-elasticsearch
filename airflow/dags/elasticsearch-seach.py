@@ -14,12 +14,54 @@ default_args = {
     'retry_delay': timedelta(seconds=10),
 }
 
-dag = DAG('my_dag', default_args=default_args, schedule_interval="@daily")
+dag = DAG('elastic_search', default_args=default_args, schedule_interval="@daily")
 
-def dump(**kwargs):
+def dump_index(**kwargs):
     ds = kwargs['ds']
     hook = ElasticHook('GET', 'elastic_conn_id')
-    resp = hook.search('my_index/my_type', {
+    resp = hook.search('logs/my_type', {
+        'size': 10000,
+        'sort': [
+            {'created_at': 'asc'}
+        ],
+        'query': {
+            'range': {
+                'created_at': {
+                    'gte': ds + '||-1d/d',
+                    'lt': ds + '||/d'
+                }
+            }
+        }
+    })
+
+    return resp['hits']['hits']
+
+# insert apachelog
+def insert_in_index(**kwargs):
+    ds = kwargs['ds']
+    hook = ElasticHook('GET', 'elastic_conn_id')
+    resp = hook.search('logs/my_type', {
+        'size': 10000,
+        'sort': [
+            {'created_at': 'asc'}
+        ],
+        'query': {
+            'range': {
+                'created_at': {
+                    'gte': ds + '||-1d/d',
+                    'lt': ds + '||/d'
+                }
+            }
+        }
+    })
+
+    return resp['hits']['hits']
+
+# insert apachelog
+def create_index(**kwargs):
+    ds = kwargs['ds']
+    hook = ElasticHook('GET', 'elastic_conn_id')
+    resp = hook.search('logs/my_type', {
         'size': 10000,
         'sort': [
             {'created_at': 'asc'}
@@ -39,6 +81,6 @@ def dump(**kwargs):
 
 t1 = PythonOperator(
     task_id='elastic_search',
-    python_callable=dump,
+    python_callable=dump_index,
     provide_context=True,
     dag=dag)
