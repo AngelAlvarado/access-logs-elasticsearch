@@ -16,6 +16,6 @@ A [Dashboard](http://localhost:5601/app/kibana#/dashboard/ApacheWeblog-Dashboard
 [![dashboard](images/dashboard.png?raw=true)](images/dashboard.png)
 
 ### ToDos
- airflow instructions
- create ES index using a DAG
- insert data into ES using a DAG 
+ - airflow instructions
+ - create ES index using a DAG
+ - insert data into ES using a DAG 
