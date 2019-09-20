@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 
 services:
   elasticsearch:
@@ -6,14 +6,27 @@ services:
     ports:
      - "9300:9300"
      - "9200:9200"
-  molanco-datacollector:
-    build: ./streamsets
+  airflow:
+    image: puckel/docker-airflow:1.10.4
     ports:
-     - "18630:18630"
+     - "8080:8080"
+     - "5555:5555"
     depends_on:
      - elasticsearch
+    environment:
+      - AIRFLOW_DEPS="datadog,dask"
+      - PYTHON_DEPS="flask_oauthlib>=0.9"
+      - LOAD_EX=y
+      - EXECUTOR=Local
     volumes:
-     - ./streamsets/data:/data:rw
+     - ./airflow/data:/usr/local/airflow/dags:rw
+     - ./airflow/hooks:/usr/local/airflow/hooks:rw
+    command: webserver 
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
   kibana:
     image: kibana:4.5.4
     ports:
@@ -24,11 +37,9 @@ services:
       - elasticsearch
   molanco-inserting_data:
     build: ./build
-    command: sh /start.sh
+    command: sh /start.sh # this should be a dag and be executed only once
     depends_on:
       - elasticsearch
       - kibana
-      - molanco-datacollector
-# assing a nice name to volume
 volumes:
     datacollectordata:
