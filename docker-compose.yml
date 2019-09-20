@@ -6,13 +6,13 @@ services:
     ports:
      - "9300:9300"
      - "9200:9200"
-  airflow:
+  webserver:
     image: puckel/docker-airflow:1.10.4
     ports:
      - "8080:8080"
-     - "5555:5555"
     depends_on:
      - elasticsearch
+     - postgres
     environment:
       - AIRFLOW_DEPS="datadog,dask"
       - PYTHON_DEPS="flask_oauthlib>=0.9"
@@ -27,6 +27,15 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
+  postgres:
+    image: postgres:9.6
+    environment:
+        - POSTGRES_USER=airflow
+        - POSTGRES_PASSWORD=airflow
+        - POSTGRES_DB=airflow
+        - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+        - ./pgdata:/var/lib/postgresql/data/pgdata
   kibana:
     image: kibana:4.5.4
     ports:
