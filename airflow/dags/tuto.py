@@ -76,6 +76,7 @@ t4 = PythonOperator(
     provide_context=True,
     python_callable=write_logs,
     dag=dag,
+)
 
 t2.set_upstream(t1)
 t3.set_upstream(t1)
