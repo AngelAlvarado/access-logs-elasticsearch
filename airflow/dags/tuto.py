@@ -6,8 +6,10 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
+from elastic_hook import ElasticHook
 import re
 import os
+import logging
 
 
 default_args = {
@@ -26,15 +28,20 @@ default_args = {
 }
 
 def write_logs():
+    logging.info('Iniciando tarea')
+    ds = kwargs['ds']
+    hook = ElasticHook('POST', 'http://elasticsearch:9200')
     #load Directory
-    logs = os.listdir("airflow/data/apache_logs")
+    logs = os.listdir("/usr/local/airflow/data/apache_logs/")
     #Define regex by log line
     regex = '^(\S+) (\S+) (\S+) \[([\w:/]+\s[+\-]\d{4})\] "(\S+) (\S+)\s*(\S+)\s*" (\d{3}) (\S+)'
     #Read file log of directory
     for i in range(len(logs)):
-        path_log =  "airflow/data/apache_logs/" + logs[i]
+        path_log =  "/usr/local/airflow/data/apache_logs/" + logs[i]
         f = open(path_log, "r")
+        logging.info('Abriendo fichero')
         #Read Lines
+        index = 1
         for line in f:
             if re.match(regex, line):
                 match =  re.search(regex, line).groups()
@@ -47,7 +54,24 @@ def write_logs():
                 protocol      = match[6]
                 response_code = int(match[7])
                 content_size  = match[8]
+                resp = hook.insert_log('logs/'+ index, {
+                        "log":{
+                        "auth":client_identd,
+                        "bytes":content_size,
+                        "clientip":host, 
+                        "httpversion":protocol, 
+                        "ident":client_identd,
+                        "request":endpoint,
+                        "response":response_code,
+                        "timestamp":date_time,
+                        "verb":"",
+                        "geo": {"lg": 200, "lt":300},
+                        "city": "EU"
+                        }
+                    })
         f.close()
+
+    return resp['hits']['hits']        
 
 dag = DAG("tutorial", default_args=default_args, schedule_interval=timedelta(1))
 
@@ -72,11 +96,14 @@ t3 = BashOperator(
 )
 
 t4 = PythonOperator(
-    task_id='write_elastic_serach',
+    task_id='write_elastic_serach_2',
     provide_context=True,
     python_callable=write_logs,
+    op_kwargs={'random_base': float(12) / 10},
     dag=dag,
-)
+    )
+
 
 t2.set_upstream(t1)
 t3.set_upstream(t1)
+t4.set_upstream(t1)

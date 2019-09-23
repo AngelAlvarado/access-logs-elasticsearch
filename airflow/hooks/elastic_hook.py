@@ -7,8 +7,6 @@ import json
 
 class ElasticHook(HttpHook):
     def search(self, index_and_type, args):
-        session = self.get_conn({})
-
         url = self.base_url + index_and_type + '/_search'
 
         req = requests.Request('GET', url, json=args)
@@ -22,3 +20,14 @@ class ElasticHook(HttpHook):
             raise AirflowException(str(resp.status_code) + ":" + resp.reason)
 
         return json.loads(resp.content)
+
+
+    def insert_log(self, index_and_type, args):
+        try:
+            url ="http://elasticsearch:9200/" + index_and_type
+            req = requests.post(url, json=args)
+        except requests.exceptions.HTTPError:
+            logging.error("HTTP error: "+ req.status_code)
+            raise AirflowException(str(req.status_code) + ":" + req.reason)
+
+        return json.loads(req.content)      

@@ -21,6 +21,7 @@ services:
     volumes:
      - ./airflow/dags:/usr/local/airflow/dags:rw
      - ./airflow/hooks:/usr/local/airflow/plugins:rw
+     - ./airflow/data:/usr/local/airflow/data:rw
     command: webserver 
     healthcheck:
       test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
